@@ -78,7 +78,7 @@ ggsave('outputs/sevDADmax.png', width = 6, height = 4, scale = 1.2)
 
 
 temp_7day %>%
-  select(-n, -DayCoverage, -Year, -Month) %>%
+  select(-n, -DayCoverage) %>%
   group_by(Date) %>%
   tidyr::pivot_wider(
     names_from = Locator,
