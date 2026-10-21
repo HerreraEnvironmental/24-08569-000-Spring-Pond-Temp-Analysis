@@ -1,11 +1,9 @@
 ## Required Packages
 library(arrow)
-library(dplyr)
-library(tidyr)
+library(tidyverse)
 library(httr2)
 library(jsonlite)
 library(dotenv)
-library(lubridate)
 
 # functions ---------------------------------
 # column names
@@ -53,7 +51,16 @@ secret <- Sys.getenv("EDMS_API_KEY")
 project <- "24-08569-000"
 # get column names
 ts_columns <- DRIP_ts_columns(secret, project)
-ts_column_names <- ts_columns$column
+ts_column_names <- ts_columns$column[ts_columns$parameter=="Water Temp"]
 
 # query data
-temp_data <- DRIP_ts_parquet(secret, project, columns = ts_column_names)
+raw_temp_data <- DRIP_ts_parquet(secret, project, columns = ts_column_names)
+
+temp_data <- raw_temp_data %>%
+  pivot_longer(cols = c(2:5), values_to = "Value") %>%
+  mutate(name = gsub("Water Temp_degC_Spring Pond_", "", name), 
+    Locator = ifelse(name == "SPING-NORTH", "SPRING-NORTH", name),
+    .keep = "unused") %>%
+  filter(!is.na(Value))
+
+
