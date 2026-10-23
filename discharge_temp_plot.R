@@ -1,3 +1,5 @@
+library(tidyverse)
+
 discharge_26a <- read.csv("inputs/26a_historic_discharge_temp.csv", fileEncoding = "latin1")
 
 summer_discharge <- discharge_26a %>% 
