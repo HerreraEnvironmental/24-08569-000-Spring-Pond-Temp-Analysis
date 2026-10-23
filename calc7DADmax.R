@@ -33,16 +33,13 @@ roll_consecutive <- function(date, value, fun, align = "right") {
 
 min_valid_days_7day <- 7L
 
-air_temp <- read.csv("inputs/Hydrology_PUQEW.csv", fileEncoding = "latin1") %>%
-  mutate(datetime = parse_datetime(`Collect.Date..local.`, format = "%d-%b-%Y %H:%M"))
-
 daily_summary <- temp_data %>%
   filter(Locator!="26a-KingCounty") %>%
   group_by(Locator, Date = as_date(datetime)) %>%
   summarise(n = n(), DayCoverage = n / (24 * 60 / 5), MaxT = max(Value))
 
 daily_summary_26a <- temp_data %>%
-  filter(Locator=="26a-KingCounty") %>%
+  filter(Locator=="26a-KingCounty", as_date(datetime) > ymd("2026-06-15"), as_date(datetime) < ymd("2026-09-30")) %>%
   group_by(Locator, Date = as_date(datetime)) %>%
   summarise(n = n(), DayCoverage = n / (24 * 60 / 15), MaxT = max(Value))
 
@@ -52,7 +49,7 @@ temp_7day <- daily_summary %>%
   filter(DayCoverage > 0.8) %>% #require 80% coverage
   dplyr::arrange(Date, .by_group = TRUE) |>
   dplyr::mutate(
-    Temp7DayMean = roll_consecutive(Date, MaxT, mean, align = "right")
+    Temp7DayMean = roll_consecutive(Date, MaxT, mean, align = "center")
   ) |>
   dplyr::ungroup()
 
@@ -83,16 +80,6 @@ temp_7day %>%
   arrange(Date) %>%
   write_csv('outputs/sevDADmax.csv')
 
-temp_data %>%
-  ggplot(aes(x = datetime, y = Value, col = Locator)) +
-  geom_line() +
-  geom_line(data = air_temp, aes(x = datetime, y = `Air.Temperature...C.`), color = "black") +
-  theme_bw() +
-  scale_y_continuous('Temperature') +
-  scale_x_date('', date_labels = '%B', limits = as.Date(c('2026-06-01', NA))) +
-  scale_color_manual(values = c("SPRING-DEEP"="#04A1FF","SPRING-NORTH"="#3ECDA3","SPRING-OUT"="#FFC42E","26a-KingCounty"= "#5C4E2C")) +
-  theme(legend.position = 'bottom')
-
 # percent complete --------------------------------------------------------
 completeness <- temp_data %>%
   filter(Locator != "26a-KingCounty") %>%
@@ -122,3 +109,11 @@ daily_summary_stats <- temp_data %>%
   arrange(Date)
 # write as csv and paste into formatted excel doc
 write_csv(daily_summary_stats, "outputs/daily_summary.csv")
+
+# days exceeding -----------------------------------------------------------
+exceedance <- temp_7day %>%
+  filter(!is.na(Temp7DayMean)) %>%
+  group_by(Locator) %>%
+  summarize(n = n(),
+   exceeds_16 = sum(Temp7DayMean>16),
+   exceeds_17.5 = sum(Temp7DayMean>17.5))

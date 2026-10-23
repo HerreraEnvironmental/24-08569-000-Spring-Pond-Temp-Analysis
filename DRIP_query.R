@@ -62,5 +62,3 @@ temp_data <- raw_temp_data %>%
     Locator = ifelse(name == "SPING-NORTH", "SPRING-NORTH", name),
     .keep = "unused") %>%
   filter(!is.na(Value))
-
-
